@@ -12,6 +12,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.squad21.pitang.User.dto.UserDTO;
+import jakarta.validation.Valid;
+import java.math.BigDecimal;
+
 import com.squad21.pitang.User.User;
 import com.squad21.pitang.User.Repository.IUserRepository;
 
@@ -27,17 +31,27 @@ public class UserController {
     public List <User> getAllUsers(){
         return userRepository.findAll();
     }
+
     @PostMapping("/criar")
-    public ResponseEntity create(@RequestBody User userModel){
-    var user_cpf = userRepository.findByCpf(userModel.getCpf());
-    if(user_cpf != null){   
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Usuário já existe!");
-    }
-    userModel.setSaldo(50);
-    var passwordHashred = BCrypt.withDefaults().
-    hashToString(12, userModel.getSenha().toCharArray());
-    userModel.setSenha(passwordHashred);
-    var userCreated = this.userRepository.save(userModel);
-    return ResponseEntity.status(HttpStatus.CREATED).body(userCreated);
+    public ResponseEntity create(@Valid @RequestBody UserDTO data){
+
+        var user_cpf = userRepository.findByCpf(data.cpf());
+        if(user_cpf != null){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("{\"error\": \"CPF já cadastrado!\"}");
+        }
+
+        User newUser = new User();
+        newUser.setNomeCompleto(data.nomeCompleto());
+        newUser.setCpf(data.cpf());
+        newUser.setEmail(data.email());
+        newUser.setSaldo(new BigDecimal("50.00"));
+
+        var passwordHashred = BCrypt.withDefaults().
+            hashToString(12, data.senha().toCharArray());
+        newUser.setSenha(passwordHashred);
+
+        var userCreated = this.userRepository.save(newUser);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(userCreated);
     }
 }
